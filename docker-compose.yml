@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    container_name: postgres
+    environment:
+      POSTGRES_USER: your_postgres_user
+      POSTGRES_PASSWORD: your_postgres_password
+      POSTGRES_DB: your_postgres_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER: your_minio_access_key
+      MINIO_ROOT_PASSWORD: your_minio_secret_key
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+    command: server /data
+
+  fastapi:
+    build: .
+    container_name: fastapi
+    command: uvicorn public_api.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - minio
+    environment:
+      DATABASE_URL: postgresql://your_postgres_user:your_postgres_password@postgres/your_postgres_db
+      AWS_ACCESS_KEY_ID: your_minio_access_key
+      AWS_SECRET_ACCESS_KEY: your_minio_secret_key
+      S3_BUCKET_NAME: your_bucket_name
+      S3_ENDPOINT_URL: http://minio:9000
+
+volumes:
+  postgres_data:
+  minio_data:
